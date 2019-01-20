@@ -64,10 +64,3 @@ function client() {
     });
     console.log('end');
 }
-
-// console.log('command is: ' + cli.command, options);
-// const options = cli.parse();
-// cli.withStdinLines(function (lines, newline) {
-//     console.log(options);
-//     this.output(lines.join(newline));
-// });
