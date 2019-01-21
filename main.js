@@ -7,6 +7,7 @@ const options = cli.parse(
         host: ['h', 'host', 'string', '127.0.0.1'],
     },
     ['server', 'client']);
+process.stdin.setEncoding('utf8');
 
 switch (cli.command) {
     case 'server':
@@ -22,11 +23,13 @@ function server() {
 }
 
 function hexToBuffer(hex) {
+    if (!hex)
+        return null;
     let bytes = [];
-    hex = hex.toLowerCase();
+    hex = hex.trim().toLowerCase();
     for (let i = 0, len = hex.length / 2; i < len; ++i) {
         let subhex = hex.substring(i * 2, i * 2 + 2);
-        bytes.push(parseInt(subhex));
+        bytes.push(parseInt(subhex, 16));
     }
     return Buffer.from(bytes);
 }
@@ -34,13 +37,15 @@ function hexToBuffer(hex) {
 function bufferToHex(buf) {
     let iter = buf.values();
     let hexArr = [];
-    for(let item of iter) {
+    for (let item of iter) {
         hexArr.push(item.toString(16));
     }
     console.log(hexArr.join(''));
 }
 
 function sendHex(socket, hex) {
+    if (!hex)
+        return null;
     let buf = hexToBuffer(hex);
     socket.write(buf);
 }
@@ -50,9 +55,15 @@ function client() {
     let socket = new Socket();
     socket.connect({port, host}, () => {
         console.log('connection');
-
         socket.on('data', (data) => {
             bufferToHex(data);
+        });
+        socket.on('error', () => {
+            console.log('error');
+            process.exit();
+        });
+        socket.on('end', () => {
+            process.exit();
         });
 
         let hex = cli.args.shift();
@@ -62,5 +73,8 @@ function client() {
             console.log('start');
         }
     });
-    console.log('end');
+    process.stdin.on('readable', () => {
+        const chunk = process.stdin.read();
+        sendHex(socket, chunk);
+    });
 }
